@@ -4,17 +4,21 @@ import torch.nn as nn
 class Encoder(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int, embed_dim:int, 
                  nlayers:int, bidirect:bool, drop_rate:float):
-            super().__init__()
+        super().__init__()
 
-            self.input_dim  = input_dim
-            self.hidden_dim = hidden_dim
-            self.embed_dim  = embed_dim
-            self.nlayers    = nlayers
+        self.input_dim  = input_dim
+        self.hidden_dim = hidden_dim
+        self.embed_dim  = embed_dim
+        self.nlayers    = nlayers
+        if bidirect:
+            self.bi_dim = 2
+        else:
+            self.bi_dim = 1
 
-            self.embedding = nn.Embedding(input_dim, embed_dim)
+        self.embedding = nn.Embedding(input_dim, embed_dim)
 
-            self.lstm      = nn.LSTM(embed_dim, hidden_dim, nlayers, bidirectional=bidirect, dropout=drop_rate)
-            self.dropout   = nn.Dropout(drop_rate)
+        self.lstm      = nn.LSTM(embed_dim, hidden_dim, nlayers, bidirectional=bidirect, dropout=drop_rate)
+        self.dropout   = nn.Dropout(drop_rate)
 
     def forward(self, x):
         '''
@@ -38,10 +42,14 @@ class Decoder(nn.Module):
         self.output_dim = output_dim
         self.hidden_dim = hidden_dim
         self.nlayers    = nlayers
+        if bidirect:
+            self.bi_dim = 2
+        else:
+            self.bi_dim = 1
 
         self.embedding = nn.Embedding(output_dim, embed_dim)
         self.lstm      = nn.LSTM(embed_dim, hidden_dim, nlayers, bidirectional=bidirect, dropout=drop_rate)
-        self.fc        = nn.Linear(hidden_dim, output_dim)
+        self.fc        = nn.Linear(hidden_dim * self.bi_dim, output_dim)
         self.dropout   = nn.Dropout(drop_rate)
 
     def forward(self, x, h, c):
