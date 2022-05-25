@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class Encoder(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int, embed_dim:int, 
-                 nlayers:int, drop_rate:float):
+                 nlayers:int, bidirect:bool, drop_rate:float):
             super().__init__()
 
             self.input_dim  = input_dim
@@ -13,7 +13,7 @@ class Encoder(nn.Module):
 
             self.embedding = nn.Embedding(input_dim, embed_dim)
 
-            self.lstm      = nn.LSTM(embed_dim, hidden_dim, nlayers, dropout = drop_rate)
+            self.lstm      = nn.LSTM(embed_dim, hidden_dim, nlayers, bidirectional=bidirect, dropout=drop_rate)
             self.dropout   = nn.Dropout(drop_rate)
 
     def forward(self, x):
@@ -32,7 +32,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, output_dim:int, hidden_dim:int, embed_dim:int, 
-                 nlayers:int, drop_rate:float):
+                 nlayers:int, bidirect:bool, drop_rate:float):
         super().__init__()
 
         self.output_dim = output_dim
@@ -40,7 +40,7 @@ class Decoder(nn.Module):
         self.nlayers    = nlayers
 
         self.embedding = nn.Embedding(output_dim, embed_dim)
-        self.lstm      = nn.LSTM(embed_dim, hidden_dim, nlayers, dropout = drop_rate)
+        self.lstm      = nn.LSTM(embed_dim, hidden_dim, nlayers, bidirectional=bidirect, dropout=drop_rate)
         self.fc        = nn.Linear(hidden_dim, output_dim)
         self.dropout   = nn.Dropout(drop_rate)
 

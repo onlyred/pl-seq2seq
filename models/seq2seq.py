@@ -23,13 +23,14 @@ class Seq2Seq(pl.LightningModule):
         self.lr         = hparams.lr
         self.force_teach= hparams.force_teach
         self.batch_size = hparams.batch_size
+        self.bidirect   = False
  
         self.criterion  = nn.CrossEntropyLoss(ignore_index=IDs.PAD.value)
 
         self.encoder = Encoder(self.input_dim, self.hidden_dim, 
-                               self.embed_dim, self.nlayers, self.drop_rate)
+                               self.embed_dim, self.nlayers, self.bidirect, self.drop_rate)
         self.decoder = Decoder(self.output_dim, self.hidden_dim, 
-                               self.embed_dim, self.nlayers, self.drop_rate)
+                               self.embed_dim, self.nlayers, self.bidirect, self.drop_rate)
 
     def forward(self, x, y):
         '''
