@@ -5,12 +5,12 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 
-from models import Encoder, Decoder
+from models import AttnEncoder, AttnDecoder, Attention
 from utils import Tokens, IDs
 
-class Seq2Seq(pl.LightningModule):
+class Seq2Seq_With_Attn(pl.LightningModule):
     def __init__(self, hparams):
-        super(Seq2Seq,self).__init__()
+        super(Seq2Seq_With_Attn,self).__init__()
         self.save_hyperparameters() # for checkpoint
 
         self.input_dim  = hparams.input_dim
@@ -24,30 +24,31 @@ class Seq2Seq(pl.LightningModule):
         self.lr         = hparams.lr
         self.force_teach= hparams.force_teach
         self.batch_size = hparams.batch_size
-        self.bidirect   = False
  
         self.criterion  = nn.CrossEntropyLoss(ignore_index=IDs.PAD.value)
 
-        self.encoder = Encoder(self.input_dim, self.enc_hidden, 
-                               self.embed_dim, self.nlayers, self.bidirect, self.drop_rate)
-        self.decoder = Decoder(self.output_dim, self.dec_hidden, 
-                               self.embed_dim, self.nlayers, self.bidirect, self.drop_rate)
+        self.encoder = AttnEncoder(self.input_dim, self.enc_hidden, self.dec_hidden,
+                                   self.embed_dim, self.nlayers, self.drop_rate)
+        self.attn    = Attention(self.enc_hidden, self.dec_hidden)
+        self.decoder = AttnDecoder(self.output_dim, self.enc_hidden, self.dec_hidden,
+                                   self.embed_dim, self.nlayers, self.drop_rate, self.attn)
 
     def forward(self, x, y):
         '''
         x = [src_seq_len, batch_size]
         y = [tgt_seq_len, batch_size]
         '''
-        # last hidden state of the encoder is used as the initial hidden state of the decoder
-        h, c = self.encoder(x)
         y_len   = y.size(0)
         batch_size = y.size(1)
+
+        outputs = torch.zeros(y_len, batch_size, self.output_dim).to(self.device)
+        
+        enc_outputs, h, c = self.encoder(x)
         # first input to the decoder is the <bos> tokens
         y_in    = y[0,:]    # input <eos> tokens
-        outputs = torch.zeros(y_len, batch_size, self.output_dim).to(self.device)
         for i in range(1, y_len):
             # insert input token embedding, previous hidden and previous cell states
-            p, h, c = self.decoder(y_in, h, c)
+            p, h, c = self.decoder(y_in, h, c, enc_outputs)
             outputs[i] = p
             # decide if we are going to use teacher forcing or not
             teacher_force = random.random() < self.force_teach
